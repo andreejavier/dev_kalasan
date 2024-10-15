@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Kalasan Analytics Dashboard</title>
+  <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport' />
+  <!-- CSS Files -->
+  <link href="./assets/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="./assets/css/paper-dashboard.css?v=2.0.1" rel="stylesheet" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <div class="wrapper">
+    <div class="sidebar" data-color="white">
+      <div class="logo">
+        <a href="#" class="simple-text logo-normal">Kalasan</a>
+      </div>
+      <div class="sidebar-wrapper">
+        <ul class="nav">
+          <li class="active">
+            <a href="javascript:;">
+              <i class="nc-icon nc-bank"></i>
+              <p>Dashboard</p>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="main-panel">
+      <!-- Navbar -->
+      <nav class="navbar navbar-expand-lg navbar-absolute fixed-top navbar-transparent">
+        <div class="container-fluid">
+          <div class="navbar-wrapper">
+            <a class="navbar-brand" href="javascript:;">Kalasan Analytics</a>
+          </div>
+        </div>
+      </nav>
+      <!-- End Navbar -->
+
+      <div class="content">
+        <div class="row">
+          <div class="col-md-12">
+            <h3 class="description">Analytics Overview</h3>
+
+            <!-- Statistics Section -->
+            <div class="row">
+              <div class="col-lg-4 col-md-6 col-sm-6">
+                <div class="card card-stats">
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-5">
+                        <div class="icon-big text-center icon-warning">
+                          <i class="nc-icon nc-globe text-warning"></i>
+                        </div>
+                      </div>
+                      <div class="col-7">
+                        <div class="numbers">
+                          <p class="card-category">Total Tree Species</p>
+                          <p class="card-title" id="totalSpecies">5</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-4 col-md-6 col-sm-6">
+                <div class="card card-stats">
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-5">
+                        <div class="icon-big text-center icon-warning">
+                          <i class="nc-icon nc-paper text-success"></i>
+                        </div>
+                      </div>
+                      <div class="col-7">
+                        <div class="numbers">
+                          <p class="card-category">Total Uploads</p>
+                          <p class="card-title" id="totalUploads">20</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chart Section -->
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Tree Species Data</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="treeSpeciesChart" width="400" height="150"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Uploads Over Time</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="uploadsChart" width="400" height="150"></canvas>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <footer class="footer">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="credits ml-auto">
+              <span class="copyright">© 2024, Kalasan Project</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- JavaScript to render statistics and charts -->
+  <script>
+    // Fetch data from fetch_data.php
+    fetch('fetch_data.php')
+      .then(response => response.json())
+      .then(data => {
+        // Assuming data contains the following properties: 
+        // totalSpecies, totalUploads, and an array of treeSpeciesData
+        const { totalSpecies, totalUploads, treeSpeciesData } = data;
+
+        // Populate the statistics
+        document.getElementById('totalSpecies').innerText = totalSpecies;
+        document.getElementById('totalUploads').innerText = totalUploads;
+
+        // Extract labels (species names) and count how many times each species appears
+        const speciesCount = {};
+        const uploadDates = {};
+
+        treeSpeciesData.forEach(item => {
+          const species = item.address;  // Assuming 'address' represents species
+          const dateTime = item.date_time;
+
+          // Count species
+          speciesCount[species] = (speciesCount[species] || 0) + 1;
+
+          // Count uploads by date
+          const date = new Date(dateTime).toLocaleDateString();
+          uploadDates[date] = (uploadDates[date] || 0) + 1;
+        });
+
+        // Prepare species chart data
+        const speciesLabels = Object.keys(speciesCount);
+        const speciesData = Object.values(speciesCount);
+
+        // Prepare uploads over time chart data
+        const uploadLabels = Object.keys(uploadDates);
+        const uploadData = Object.values(uploadDates);
+
+        // Tree species chart
+        const treeSpeciesCtx = document.getElementById('treeSpeciesChart').getContext('2d');
+        const treeSpeciesChart = new Chart(treeSpeciesCtx, {
+          type: 'bar',
+          data: {
+            labels: speciesLabels,
+            datasets: [{
+              label: '# of Trees',
+              data: speciesData,
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        // Uploads over time chart
+        const uploadsCtx = document.getElementById('uploadsChart').getContext('2d');
+        const uploadsChart = new Chart(uploadsCtx, {
+          type: 'line',
+          data: {
+            labels: uploadLabels,
+            datasets: [{
+              label: '# of Uploads',
+              data: uploadData,
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              borderColor: 'rgba(255, 99, 132, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      })
+      .catch(error => console.error('Error fetching data:', error));
+  </script>
+</body>
+</html>
