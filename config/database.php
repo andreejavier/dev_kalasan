@@ -1,7 +1,7 @@
 <?php
 class Database {
     private $host = "localhost";
-    private $db_name = "landong_db"; // Update with your database name
+    private $db_name = "proj-kalasan_db"; // Update with your database name
     private $username = "root"; // Update with your database username
     private $password = ""; // Update with your database password
     public $conn;

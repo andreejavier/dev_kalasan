@@ -6,6 +6,44 @@ if (!isset($_SESSION['admin_id'])) {
 }
 ?>
 
+          <!-- PHP Code for Counting Contributors and Planted Trees -->
+          <?php
+            // Database connection details
+            $servername = "localhost";  // Replace with your DB server
+            $username = "root";         // Replace with your DB username
+            $password = "";             // Replace with your DB password
+            $dbname = "proj-kalasan_db";     // Replace with your DB name
+
+            // Create a connection
+            $conn = new mysqli($servername, $username, $password, $dbname);
+
+            // Check the connection
+            if ($conn->connect_error) {
+              die("Connection failed: " . $conn->connect_error);
+            }
+
+            // SQL query to count users with id (Contributors)
+            $sql = "SELECT COUNT(*) AS contributor_count FROM users WHERE id IS NOT NULL";
+            $result = $conn->query($sql);
+            $contributor_count = 0;
+            if ($result->num_rows > 0) {
+              $row = $result->fetch_assoc();
+              $contributor_count = $row['contributor_count'];
+            }
+
+            // SQL query to count trees planted
+            $sql = "SELECT COUNT(*) AS planted_tree FROM tree_planted WHERE id IS NOT NULL";
+            $result = $conn->query($sql);
+            $planted_tree = 0;
+            if ($result->num_rows > 0) {
+              $row = $result->fetch_assoc();
+              $planted_tree = $row['planted_tree'];
+            }
+
+            // Close the connection
+            $conn->close();
+          ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -23,7 +61,7 @@ if (!isset($_SESSION['admin_id'])) {
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="wrapper">
+<div class="wrapper">
     <!-- Sidebar -->
     <div class="sidebar" data-color="white" data-active-color="danger">
       <div class="logo">
@@ -41,27 +79,38 @@ if (!isset($_SESSION['admin_id'])) {
             </a>
           </li>
           <li>
-            <a href="./validate.html">
-              <i class="nc-icon nc-bank"></i>
-              <p>Validation Logs</p>
-            </a>
-          </li>
-          <li>
             <a href="./map.php">
               <i class="nc-icon nc-pin-3"></i>
               <p>Maps</p>
             </a>
           </li>
           <li>
-            <a href="./manage_record.php">
+            <a href="./manage-record.php">
               <i class="nc-icon nc-cloud-upload-94"></i>
               <p>Manage Records</p>
             </a>
           </li>
           <li>
-            <a href="./contributors_datatable.php">
+            <a href="./tree-species-form.php">
+              <i class="nc-icon nc-cloud-upload-94"></i>
+              <p>tree Species</p>
+            </a>
+          </li>
+          <li>
+            <a href="./contributors-datatable.php">
               <i class="nc-icon nc-tile-56"></i>
               <p>Manage User</p>
+            </a>
+          </li>
+          <li>
+            <a href="./stats.php">
+              <i class="nc-icon nc-tile-56"></i>
+              <p>Manage User</p>
+            </a>
+            <li>
+            <a href="./validate-records.php">
+              <i class="nc-icon nc-tile-56"></i>
+              <p>Valadate Records</p>
             </a>
           </li>
         </ul>
@@ -108,43 +157,6 @@ if (!isset($_SESSION['admin_id'])) {
       <!-- Main content -->
       <div class="content">
         <div class="row">
-          <!-- PHP Code for Counting Contributors and Planted Trees -->
-          <?php
-            // Database connection details
-            $servername = "localhost";  // Replace with your DB server
-            $username = "root";         // Replace with your DB username
-            $password = "";             // Replace with your DB password
-            $dbname = "landong_db";     // Replace with your DB name
-
-            // Create a connection
-            $conn = new mysqli($servername, $username, $password, $dbname);
-
-            // Check the connection
-            if ($conn->connect_error) {
-              die("Connection failed: " . $conn->connect_error);
-            }
-
-            // SQL query to count users with id (Contributors)
-            $sql = "SELECT COUNT(*) AS contributor_count FROM users WHERE id IS NOT NULL";
-            $result = $conn->query($sql);
-            $contributor_count = 0;
-            if ($result->num_rows > 0) {
-              $row = $result->fetch_assoc();
-              $contributor_count = $row['contributor_count'];
-            }
-
-            // SQL query to count trees planted
-            $sql = "SELECT COUNT(*) AS planted_tree FROM newtree_species WHERE id IS NOT NULL";
-            $result = $conn->query($sql);
-            $planted_tree = 0;
-            if ($result->num_rows > 0) {
-              $row = $result->fetch_assoc();
-              $planted_tree = $row['planted_tree'];
-            }
-
-            // Close the connection
-            $conn->close();
-          ?>
 
          <!-- Dashboard Card for Contributors -->
 <div class="col-lg-3 col-md-6 col-sm-6">
@@ -163,7 +175,7 @@ if (!isset($_SESSION['admin_id'])) {
       </div>
     </div>
     <div class="button-footer">
-      <button class="btn btn-primary" onclick="window.location.href='contributors_datatable.php';">
+      <button class="btn btn-primary" onclick="window.location.href='contributors-datatable.php';">
         <i class="fa fa-eye"></i> View List
       </button>
     </div>
@@ -187,8 +199,8 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
               </div>
               <div class="button-footer">
-                   <button class="btn btn-primary" onclick="window.location.href='home.php';">
-                       <i class="fa fa-eye"></i> View Analytics
+                   <button class="btn btn-primary" onclick="window.location.href='validate.php';">
+                       <i class="fa fa-eye"></i> View Trees
                    </button>
               </div>
             </div>

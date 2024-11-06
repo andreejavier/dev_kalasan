@@ -48,14 +48,12 @@ $conn->close();
 </head>
 
 <body>
-  <div class="wrapper">
-    <!-- Sidebar (copied from home.php) -->
+<div class="wrapper">
+    <!-- Sidebar -->
     <div class="sidebar" data-color="white" data-active-color="danger">
       <div class="logo">
-        <a href="./profile.php" class="simple-text logo-mini">
-          <div class="logo-image-small">
-            <img src="assets/img/location icon.jpg" alt="Logo">
-          </div>
+        <a href="#" class="simple-text logo-mini">
+          <img src="assets/img/pngtree-banyan-tree-logo-design-vector-png-image_6131481.png" alt="Logo">
         </a>
         <a href="#" class="simple-text logo-normal">Kalasan</a>
       </div>
@@ -68,50 +66,74 @@ $conn->close();
             </a>
           </li>
           <li>
-            <a href="./validate.html">
-              <i class="nc-icon nc-bank"></i>
-              <p>Validation Logs</p>
-            </a>
-          </li>
-          <li>
             <a href="./map.php">
               <i class="nc-icon nc-pin-3"></i>
               <p>Maps</p>
             </a>
           </li>
           <li>
-            <a href="./">
+            <a href="./manage-record.php">
               <i class="nc-icon nc-cloud-upload-94"></i>
               <p>Manage Records</p>
             </a>
           </li>
           <li>
-            <a href="./contributors_datatable.php">
+            <a href="./tree-species-form.php">
+              <i class="nc-icon nc-cloud-upload-94"></i>
+              <p>tree Species</p>
+            </a>
+          </li>
+          <li>
+            <a href="./contributors-datatable.php">
               <i class="nc-icon nc-tile-56"></i>
               <p>Manage User</p>
+            </a>
+          </li>
+          <li>
+            <a href="./stats.php">
+              <i class="nc-icon nc-tile-56"></i>
+              <p>Manage User</p>
+            </a>
+            <li>
+            <a href="./validate-records.php">
+              <i class="nc-icon nc-tile-56"></i>
+              <p>Valadate Records</p>
             </a>
           </li>
         </ul>
       </div>
     </div>
-
     <!-- Main Panel -->
     <div class="main-panel">
-      <!-- Navbar -->
-      <nav class="navbar navbar-expand-lg navbar-absolute fixed-top navbar-transparent">
-        <div class="container-fluid">
-          <div class="navbar-wrapper">
-            <div class="navbar-toggle">
-              <button type="button" class="navbar-toggler">
-                <span class="navbar-toggler-bar bar1"></span>
-                <span class="navbar-toggler-bar bar2"></span>
-                <span class="navbar-toggler-bar bar3"></span>
-              </button>
-            </div>
-            <a class="navbar-brand" href="javascript:;">Map</a>
-          </div>
-        </div>
-      </nav>
+       <!-- Navbar -->
+       <nav class="navbar navbar-expand-lg navbar-absolute fixed-top navbar-transparent">
+                <div class="container-fluid">
+                    <div class="navbar-wrapper">
+                        <a class="navbar-brand" href="javascript:;">Home</a>
+                    </div>
+                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navigation" aria-controls="navigation-index" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-bar navbar-kebab"></span>
+                        <span class="navbar-toggler-bar navbar-kebab"></span>
+                        <span class="navbar-toggler-bar navbar-kebab"></span>
+                    </button>
+                    <div class="collapse navbar-collapse justify-content-end" id="navigation">
+                        <ul class="navbar-nav">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="nc-icon nc-single-02"></i>
+                                    <span><?php echo $_SESSION['username']; ?></span>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="profileDropdown">
+                                    <a class="dropdown-item" href="profile.php">View Profile</a>
+                                    <a class="dropdown-item" href="settings.php">Settings</a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="logout.php">Logout</a>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
 
       <!-- Map Content -->
       <div class="content">
@@ -155,69 +177,70 @@ $conn->close();
 
   <script>
   document.addEventListener('DOMContentLoaded', function () {
-    // Step 1: Initialize the map
-    var map = L.map('map').setView([8.358062751051879, 124.86094951519246], 11); // Initial view
+  // Step 1: Initialize the map
+  var map = L.map('map').setView([8.358062751051879, 124.86094951519246], 11); // Initial view
 
-    // Step 2: Add the tile layers (map backgrounds)
-    var satelliteLayer = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors, Tiles by OSM France'
-    });
-
-    var osmLayer = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg', {
-      attribution: '© OpenStreetMap contributors'
-    });
-
-    // Add OpenStreetMap layer by default
-    osmLayer.addTo(map);
-
-    // Step 3: Add a layer control to toggle between OSM and Satellite views
-    var baseLayers = {
-      "Street Map": satelliteLayer,
-      "Satellite View": osmLayer,
-      
-    };
-
-    L.control.layers(baseLayers).addTo(map);
-
-    // Step 4: Initialize marker cluster group
-    var markers = L.markerClusterGroup();
-
-    // Step 5: Define the custom tree icon
-    var treeIcon = L.icon({
-      iconUrl: 'assets/img/tree_icon1-removebg-preview.png',  // Replace with actual path
-      iconSize: [38, 38],  // Size of the icon
-      iconAnchor: [19, 38],  // Point of the icon that corresponds to the marker's location
-      popupAnchor: [0, -38]  // Point from which the popup should open relative to the iconAnchor
-    });
-
-    // Step 6: Fetch plant locations from the server
-    fetch('config/get_plant_data.php')
-      .then(response => response.json())
-      .then(data => {
-        data.forEach(location => {
-          const species_name = location.species_name;
-          const lat = location.latitude;
-          const lon = location.longitude;
-          const address = location.address; // Ensure consistency in field names
-          const imageUrl = location.image;
-
-          // Step 7: Add markers with custom icon to the marker cluster group
-          var marker = L.marker([lat, lon], { icon: treeIcon })
-            .bindPopup(`
-              <div style="width: 200px; font-family: Arial, sans-serif;">
-                <h4 style="margin: 0; font-size: 16px;">Plant Location</h4>
-                <img src="${imageUrl}" alt="Plant Image" style="width: 100%; height: auto; border-radius: 5px; margin-bottom: 5px;">
-                <p style="margin: 0; font-size: 14px;"><strong>Coordinates:</strong> Lat: ${lat}, Lon: ${lon}</p>
-                <p style="margin: 0; font-size: 14px;"><strong>Address:</strong> ${address}</p>
-              </div>
-            `);
-
-          markers.addLayer(marker);
-        });
-        map.addLayer(markers);
-      })
-      .catch(error => console.error('Error fetching plant data:', error));
+  // Step 2: Add the tile layers (map backgrounds)
+  var satelliteLayer = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors, Tiles by OSM France'
   });
+
+  var osmLayer = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg', {
+    attribution: '© OpenStreetMap contributors'
+  });
+
+  // Add OpenStreetMap layer by default
+  osmLayer.addTo(map);
+
+  // Step 3: Add a layer control to toggle between OSM and Satellite views
+  var baseLayers = {
+    "Street Map": satelliteLayer,
+    "Satellite View": osmLayer,
+  };
+
+  L.control.layers(baseLayers).addTo(map);
+
+  // Step 4: Initialize marker cluster group
+  var markers = L.markerClusterGroup();
+
+  // Step 5: Define the custom tree icon
+  var treeIcon = L.icon({
+    iconUrl: 'assets/img/tree icon.png',  // Replace with actual path
+    iconSize: [38, 38],  // Size of the icon
+    iconAnchor: [19, 38],  // Point of the icon that corresponds to the marker's location
+    popupAnchor: [0, -38]  // Point from which the popup should open relative to the iconAnchor
+  });
+
+  // Step 6: Fetch plant locations from the server
+  fetch('config/get_plant_data.php')
+    .then(response => response.json())
+    .then(data => {
+      data.forEach(plant => {
+        const species_name = plant.species_name;
+        const lat = plant.latitude;
+        const lon = plant.longitude;
+        const address = plant.address; // Ensure consistency in field names
+        const imageUrl = plant.image;
+        const date_time = plant.date_time; // Capture date from EXIF metadata
+
+        // Step 7: Add markers with custom icon to the marker cluster group
+        var marker = L.marker([lat, lon], { icon: treeIcon })
+          .bindPopup(`
+            <strong>Species:</strong> ${species_name}<br>
+            <strong>Location:</strong> ${address}<br>
+            <strong>Date Capture:</strong> ${date_time}<br>
+            <img src="uploads/${imageUrl}" alt="${species_name}" style="width:100px;">
+          `);
+
+        markers.addLayer(marker); // Add each marker to the marker cluster group
+      });
+
+      // Add all markers to the map
+      map.addLayer(markers);
+    })
+    .catch(error => console.error('Error fetching plant data:', error));
+});
+
   </script>
 </body>
   <script src="assets/js/core/jquery.min.js"></script>

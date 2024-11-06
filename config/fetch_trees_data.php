@@ -1,7 +1,7 @@
 <?php
 // Database connection
 $host = 'localhost';
-$dbname = 'landing_db'; // Ensure this matches the name of your created database
+$dbname = 'proj-kalasan_db'; // Ensure this matches the name of your created database
 $username = 'root';
 $password = 'your_db_password'; // Replace with your actual DB password
 
@@ -33,7 +33,7 @@ function validateTreeSpecies($species) {
 }
 
 // Fetch tree species data from the database
-$sql = "SELECT * FROM newtree_species";
+$sql = "SELECT * FROM tree_records";
 $result = $conn->query($sql);
 
 $treeSpeciesData = [];

@@ -1,7 +1,7 @@
 <?php
 // Database connection details
 $host = 'localhost';
-$dbname = 'landong_db';
+$dbname = 'proj-kalasan_db';
 $username = 'root';
 $password = 'your_db_password';
 
