@@ -1,7 +1,7 @@
 <?php
 // Database connection settings
 $host = 'localhost';
-$db = 'proj-kalasan_db';
+$db = 'dev_kalasan_db';
 $user = 'root';
 $pass = ''; // Update with your password if needed
 

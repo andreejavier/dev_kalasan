@@ -14,7 +14,7 @@ $user_id = $_SESSION['user_id'];
 $query = "
     SELECT tr.id, tr.date_time, tr.address, tr.latitude, tr.longitude, tr.species_name, tr.created_at, 
            ti.image_path AS additional_image
-    FROM tree_records tr
+    FROM tree_planted tr
     LEFT JOIN tree_images ti ON tr.id = ti.tree_record_id
     WHERE tr.user_id = ?
 ";

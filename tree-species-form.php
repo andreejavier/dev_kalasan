@@ -9,171 +9,288 @@ if (!isset($_SESSION['username'])) {
 
 include 'config/db_connection.php';
 
-// Query to fetch all tree records
-$treeRecordsQuery = "SELECT * 
-                     FROM tree_planted tr
-                     LEFT JOIN users u ON tr.user_id = u.id";
-$stmt = $conn->prepare($treeRecordsQuery);
-if ($stmt) {
-    $stmt->execute();
-    $treeRecordsResult = $stmt->get_result();
-} else {
-    die("Error preparing statement: " . $conn->error);
+// Ensure the database connection is established
+if (!$conn) {
+    die("Database connection failed: " . mysqli_connect_error());
 }
 
-// Fetch tree species for dropdown
-$treeSpeciesQuery = "SELECT id, species_name, scientific_name, description, created_at, category FROM tree_planted";
-$speciesStmt = $conn->prepare($treeSpeciesQuery);
-if ($speciesStmt) {
-    $speciesStmt->execute();
-    $treeSpeciesResult = $speciesStmt->get_result();
-} else {
-    die("Error preparing species statement: " . $conn->error);
+// Set upload directory and ensure it exists
+$uploads_dir = 'uploads/trees';
+if (!is_dir($uploads_dir)) {
+    mkdir($uploads_dir, 0777, true);
 }
 
-$message = '';
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $treePlanted = $_POST['tree_planted'];
+// Fetch all tree records with additional images and uploader details
+$query = "SELECT tr.*, ti.image_path AS additional_image, u.username AS uploader_name, u.profile_picture 
+          FROM tree_planted tr
+          LEFT JOIN tree_images ti ON tr.id = ti.tree_planted_id
+          LEFT JOIN users u ON tr.user_id = u.id";
+$stmt = mysqli_prepare($conn, $query);
 
+if ($stmt === false) {
+    die("Error preparing statement: " . mysqli_error($conn));
 }
 
-$stmt->close();
-$speciesStmt->close();
-$conn->close();
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+
+$trees = [];
+while ($row = mysqli_fetch_assoc($result)) {
+    $tree_id = $row['id'];
+    if (!isset($trees[$tree_id])) {
+        $trees[$tree_id]['details'] = $row;
+    }
+    if ($row['additional_image']) {
+        $trees[$tree_id]['images'][] = $row['additional_image'];
+    }
+}
+
+mysqli_stmt_close($stmt);
+mysqli_close($conn);
 ?>
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8" />
-    <link rel="apple-touch-icon" sizes="76x76" href="./assets/img/apple-icon.png">
-    <link rel="icon" type="image/png" href="./assets/img/favicon.png">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-    <title>Tree Records</title>
-    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport' />
+    <title>Kalasan Mapping - All Planted Trees</title>
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,200" rel="stylesheet" />
     <link href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
-    <link href="./assets/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="./assets/css/paper-dashboard.css?v=2.0.1" rel="stylesheet" />
+    <link href="assets/css/paper-dashboard.css" rel="stylesheet">
+    <link href="assets/css/custom-dashboard.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f0f0f0; /* Setting the background to gray */
+        }
+
+        .wrapper {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 250px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: #f8f9fa;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .content {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+            padding: 20px;
+        }
+
+        .main-content {
+            margin-top: 80px; /* Adjust for navbar height */
+            padding: 20px;
+        }
+
+        .tree-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .additional-images img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            margin: 5px;
+        }
+
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        @media screen and (max-width: 768px) {
+            .content {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+        }
+
+        /* Navbar adjustments */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 250px; /* Aligns with sidebar */
+            width: calc(100% - 250px);
+            z-index: 1001;
+            background-color: #ffffff;
+        }
+
+        .navbar .nav-link {
+            color: #333;
+        }
+
+        .navbar .dropdown-menu {
+            right: 0;
+            left: auto;
+        }
+
+        @media screen and (max-width: 768px) {
+            .navbar {
+                left: 0;
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 
 <body>
 <div class="wrapper">
+    <!-- Sidebar -->
     <div class="sidebar" data-color="white" data-active-color="danger">
-        <div class="logo">
-            <a href="https://www.creative-tim.com" class="simple-text logo-normal">
-                Your Logo
+      <div class="logo">
+        <a href="#" class="simple-text logo-mini">
+          <img src="assets/img/pngtree-banyan-tree-logo-design-vector-png-image_6131481.png" alt="Logo">
+        </a>
+        <a href="#" class="simple-text logo-normal">Kalasan</a>
+      </div>
+      <div class="sidebar-wrapper">
+        <ul class="nav">
+          <li class="active">
+            <a href="./home.php">
+              <i class="nc-icon nc-bank"></i>
+              <p>Home</p>
             </a>
+          </li>
+          <li>
+            <a href="./map.php">
+              <i class="nc-icon nc-pin-3"></i>
+              <p>Maps</p>
+            </a>
+          </li>
+          <li>
+            <a href="./manage-record.php">
+              <i class="nc-icon nc-cloud-upload-94"></i>
+              <p>Manage Records</p>
+            </a>
+          </li>
+          <li>
+            <a href="./tree-species-form.php">
+              <i class="nc-icon nc-cloud-upload-94"></i>
+              <p>Tree Species</p>
+            </a>
+          </li>
+          <li>
+            <a href="./contributors-datatable.php">
+              <i class="nc-icon nc-tile-56"></i>
+              <p>Manage User</p>
+            </a>
+          </li>
+          <li>
+            <a href="./validate-records.php">
+              <i class="nc-icon nc-tile-56"></i>
+              <p>Rree Records</p>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    
+<!-- Navbar with Search Inputs -->
+<nav class="navbar navbar-expand-lg fixed-top navbar-light" color-on-scroll="300">
+    <div class="container-fluid">
+        <div class="navbar-translate">
+            <a class="navbar-brand" href="#">Kalasan Dashboard</a>
         </div>
-        <div class="sidebar-wrapper">
-            <ul class="nav">
-                <li class="active">
-                    <a href="javascript:;">
-                        <i class="nc-icon nc-bank"></i>
-                        <p>Tree Records</p>
-                    </a>
-                </li>
-                <li>
-                    <a href="javascript:;">
-                        <i class="nc-icon nc-diamond"></i>
-                        <p>Second Item</p>
-                    </a>
-                </li>
-                <li>
-                    <a href="javascript:;">
-                        <i class="nc-icon nc-pin-3"></i>
-                        <p>Third Item</p>
-                    </a>
-                </li>
-            </ul>
+        <div class="collapse navbar-collapse justify-content-end" id="navigation">
+            <form class="form-inline">
+                <div class="searchwrapper">
+                    <input id="speciesSearch" class="form-control" placeholder="Search Species" type="text" onkeyup="filterTrees()" />
+                </div>
+                <div class="searchwrapper">
+                    <input id="locationSearch" class="form-control" placeholder="Search Location" type="text" onkeyup="filterTrees()" />
+                </div>
+                <button class="btn btn-default btn-inat btn-focus show-btn" type="button" onclick="filterTrees()">
+                    <i class="fa fa-search"></i>
+                </button>
+                <ul class="navbar-nav">
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="color: black;">
+            <i class="nc-icon nc-single-02"></i>
+            <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="profileDropdown">
+            <a class="dropdown-item" href="profile.php" style="color: black;">View Profile</a>
+            <a class="dropdown-item" href="settings.php" style="color: black;">Settings</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="logout.php" style="color: black;">Logout</a>
+        </div>
+    </li>
+</ul>
+
+            </form>
         </div>
     </div>
-    <div class="main-panel" style="height: 100vh;">
-        <nav class="navbar navbar-expand-lg navbar-absolute fixed-top navbar-transparent">
-            <div class="container-fluid">
-                <div class="navbar-wrapper">
-                    <a class="navbar-brand" href="javascript:;">Tree Records</a>
-                </div>
-                <div class="collapse navbar-collapse justify-content-end" id="navigation">
-                    <form>
-                        <div class="input-group no-border">
-                            <input type="text" value="" class="form-control" placeholder="Search...">
-                            <div class="input-group-append">
-                                <div class="input-group-text">
-                                    <i class="nc-icon nc-zoom-split"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                    <ul class="navbar-nav">
-                        <li class="nav-item btn-rotate dropdown">
-                            <a class="nav-link dropdown-toggle" href="http://example.com" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="nc-icon nc-bell-55"></i>
+</nav>
+
+<!-- Main content -->
+<div class="content">
+    <div class="container-fluid">
+        <div class="main-content">
+            <h3>All Planted Trees</h3>
+
+            <div class="row" id="treeContainer">
+                <?php foreach ($trees as $tree): ?>
+                    <div class="col-md-4 tree-card">
+                        <div class="card">
+                            <a href="view-tree.php?id=<?php echo htmlspecialchars($tree['details']['id']); ?>">
+                                <img src="<?php echo htmlspecialchars($tree['details']['image_path']); ?>" alt="Tree Image" />
                             </a>
-                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownMenuLink">
-                                <a class="dropdown-item" href="#">Action</a>
-                                <a class="dropdown-item" href="#">Another action</a>
-                                <a class="dropdown-item" href="#">Something else here</a>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-        <div class="content">
-            <div class="container">
-                <h3 class="mt-4">Tree Records</h3>
-
-                <?php if ($message): ?>
-                    <div class="alert alert-info"><?php echo htmlspecialchars($message); ?></div>
-                <?php endif; ?>
-
-                <div class="row">
-                    <?php while ($row = $treeRecordsResult->fetch_assoc()): ?>
-                        <div class="col-md-4 mb-4">
-                            <div class="card">
-                                <img src="<?php echo htmlspecialchars($row['image_path']); ?>" class="card-img-top" alt="Tree Image" style="height: 200px; object-fit: cover;">
-                                <div class="card-body">
-                                    <p class="card-text"><strong>Name:</strong> <?php echo htmlspecialchars($row['species_name']); ?></p>
-                                    <p class="card-text"><strong>Address:</strong> <?php echo htmlspecialchars($row['address']); ?></p>
-                                    <p class="card-text"><strong>Date & Time:</strong> <?php echo htmlspecialchars($row['date_time']); ?></p>
-                                    <p class="card-text"><strong>Uploaded By:</strong> <?php echo htmlspecialchars($row['username']); ?></p>
-                                </div>
+                            <div class="card-body">
+                                <h5 class="card-title"><?php echo htmlspecialchars($tree['details']['species_name']); ?></h5>
+                                <p class="card-text"><?php echo htmlspecialchars($tree['details']['address']); ?></p>
+                                <img class="profile-pic" src="<?php echo htmlspecialchars($tree['details']['profile_picture']); ?>" alt="Profile Picture" />
                             </div>
                         </div>
-                    <?php endwhile; ?>
-                </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
-        <footer class="footer" style="position: absolute; bottom: 0; width: -webkit-fill-available;">
-            <div class="container-fluid">
-                <div class="row">
-                    <nav class="footer-nav">
-                        <ul>
-                            <li><a href="https://www.creative-tim.com" target="_blank">Creative Tim</a></li>
-                            <li><a href="https://www.creative-tim.com/blog" target="_blank">Blog</a></li>
-                            <li><a href="https://www.creative-tim.com/license" target="_blank">Licenses</a></li>
-                        </ul>
-                    </nav>
-                    <div class="credits ml-auto">
-                        <span class="copyright">
-                            © 2020, made with <i class="fa fa-heart heart"></i> by Creative Tim
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </footer>
     </div>
 </div>
 
-<script src="./assets/js/core/jquery.min.js"></script>
-<script src="./assets/js/core/popper.min.js"></script>
-<script src="./assets/js/core/bootstrap.min.js"></script>
-<script src="./assets/js/plugins/perfect-scrollbar.jquery.min.js"></script>
-<script src="./assets/js/plugins/chartjs.min.js"></script>
-<script src="./assets/js/plugins/bootstrap-notify.js"></script>
-<script src="./assets/js/paper-dashboard.min.js?v=2.0.1" type="text/javascript"></script>
-<script src="./assets/demo/demo.js"></script>
+<!-- Scripts -->
+<script>
+function filterTrees() {
+    let speciesInput = document.getElementById("speciesSearch").value.toLowerCase();
+    let locationInput = document.getElementById("locationSearch").value.toLowerCase();
+    let cards = document.querySelectorAll(".tree-card");
+
+    cards.forEach(card => {
+        let speciesName = card.querySelector(".card-title").innerText.toLowerCase();
+        let location = card.querySelector(".card-text").innerText.toLowerCase();
+        if (speciesName.includes(speciesInput) && location.includes(locationInput)) {
+            card.style.display = "";
+        } else {
+            card.style.display = "none";
+        }
+    });
+}
+</script>
+
+<!-- Bootstrap JS -->
+<script src="assets/js/core/jquery.min.js"></script>
+<script src="assets/js/core/popper.min.js"></script>
+<script src="assets/js/core/bootstrap.min.js"></script>
 </body>
 </html>

@@ -1,9 +1,9 @@
 <?php
 // Database connection
 $host = 'localhost';
-$dbname = 'proj-kalasan_db';
+$dbname = 'div_kalasan_db';
 $username = 'root';
-$password = 'your_db_password'; // Replace with your actual password
+$password = '';
 
 try {
     // Create a new PDO connection
@@ -17,7 +17,7 @@ try {
     // Query to fetch data for tree species grouped by address
     $speciesQuery = $pdo->prepare("
         SELECT address, COUNT(id) AS count 
-        FROM tree_records 
+        FROM tree_planted 
         GROUP BY address
     ");
     $speciesQuery->execute();
@@ -26,7 +26,7 @@ try {
     // Query to fetch upload dates grouped by date only
     $uploadsQuery = $pdo->prepare("
         SELECT DATE(created_at) AS created_at, COUNT(id) AS count 
-        FROM tree_records 
+        FROM tree_planted 
         GROUP BY DATE(created_at) 
         ORDER BY created_at ASC
     ");

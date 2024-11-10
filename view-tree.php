@@ -9,50 +9,63 @@ if (!isset($_GET['id'])) {
 }
 
 $tree_id = $_GET['id'];
+$admin_id = $_SESSION['admin_id']; // Assuming admin is logged in and admin_id is stored in the session
 
-// Query to fetch plant data and the uploader's info (username and number of plants uploaded)
+// Fetch tree planting details
 $sql = "SELECT t.*, u.username, u.profile_picture, COUNT(t2.id) AS observations_count
         FROM `tree_planted` t
         JOIN `users` u ON t.user_id = u.id
         LEFT JOIN `tree_planted` t2 ON t2.user_id = u.id
         WHERE t.id = ? 
         GROUP BY u.id";
-
-// Prepare the statement
 $stmt = $conn->prepare($sql);
 if (!$stmt) {
     die('Query preparation failed: ' . $conn->error);
 }
-
-// Bind the parameter (tree_id) to the query
 $stmt->bind_param("i", $tree_id);
-
-// Execute the query
 $stmt->execute();
-
-// Get the result
 $result = $stmt->get_result();
-
-if ($result->num_rows == 0) {
-    // No record found
-    echo "No tree found.";
-    exit();
-}
-
-// Fetch the tree record and uploader info
 $tree = $result->fetch_assoc();
+$stmt->close();
 
-// Query to fetch other plants by the same user
-$other_plants_sql = "SELECT t.id, t.species_name, t.image_path 
-                     FROM `tree_planted` t
-                     WHERE t.user_id = ? AND t.id != ?"; // Excluding current plant
-$stmt = $conn->prepare($other_plants_sql);
+// Fetch all reviews for this tree planting
+$reviews_sql = "SELECT r.*, a.admin_name FROM `reviews` r JOIN `admin` a ON r.review_by = a.admin_id WHERE r.tree_planted_id = ?";
+$stmt = $conn->prepare($reviews_sql);
+$stmt->bind_param("i", $tree_id);
+$stmt->execute();
+$reviews_result = $stmt->get_result();
+$stmt->close();
+
+// Handle review submission by admin
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
+    $status = $_POST['status'];
+    $comments = $_POST['comments'];
+    
+    $insert_review_sql = "INSERT INTO `reviews` (tree_planted_id, review_by, status, comments) VALUES (?, ?, ?, ?)";
+    $stmt = $conn->prepare($insert_review_sql);
+    $stmt->bind_param("iiss", $tree_id, $admin_id, $status, $comments);
+    
+    if ($stmt->execute()) {
+        header("Location: view-tree.php?id=$tree_id");
+        exit();
+    } else {
+        echo "Error submitting review: " . $conn->error;
+    }
+    
+    $stmt->close();
+}
+// Fetch other trees planted by the same user (excluding the current tree)
+$other_trees_sql = "SELECT id, species_name, scientific_name, date_time, latitude, longitude, image_path
+                    FROM `tree_planted`
+                    WHERE user_id = ? AND id != ?";
+$stmt = $conn->prepare($other_trees_sql);
 $stmt->bind_param("ii", $tree['user_id'], $tree_id);
 $stmt->execute();
-$other_plants_result = $stmt->get_result();
-
-// Close the statement and connection
+$other_trees_result = $stmt->get_result();
 $stmt->close();
+?>
+
+
 $conn->close();
 ?>
 
@@ -70,46 +83,46 @@ $conn->close();
     <link href="./assets/css/paper-dashboard.css?v=2.0.1" rel="stylesheet" />
     <!-- CSS for Leaflet Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.3.0/css/lightgallery.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.3.0/lightgallery.min.js"></script>
+
+    
     <style>
         #map { height: 250px; width: 100%; margin-top: 20px; border: 1px solid #ddd; }
-        .tree-image { width: 100%; height: auto; }
+         /* Adjust styles to support the LightGallery */
+  .tree-image {
+    width: 100%;
+    height: auto;
+    cursor: pointer; /* Make it clear the image is clickable */
+  }
         .species-details { font-style: italic; color: #555; }
         .user-info { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
         .user-info img { border-radius: 50%; width: 40px; height: 40px; }
-        .map-details { text-align: center; margin-top: 10px; font-size: 0.9em; color: #777; }
+        .review-form { margin-top: 30px; }
+        .review-item { border-bottom: 1px solid #ddd; padding: 10px 0; }
+        .review-item:last-child { border-bottom: none; }
 
-        /* Flexbox layout for main content and footer */
-        .main-panel {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+        .custom-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background-color: #000;
+  color: #fff;
+  border: none;
+  padding: 10px;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 1001; /* Ensure the button appears above the image */
+  border-radius: 5px;
+  opacity: 0.7;
+}
 
-        .content {
-            flex: 1;
-        }
+.custom-close-btn:hover {
+  opacity: 1;
+}
 
-        footer.footer {
-            background: #f4f4f4;
-            padding: 15px;
-            text-align: center;
-        }
-        .other-plants {
-            margin-top: 40px;
-        }
-        .other-plants .plant-card {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        .other-plants .plant-card img {
-            width: 100px;
-            height: 100px;
-            object-fit: cover;
-        }
-        .other-plants .plant-card .plant-info {
-            flex: 1;
-        }
+
+        
     </style>
 </head>
 <body class="">
@@ -145,7 +158,7 @@ $conn->close();
           <li>
             <a href="./tree-species-form.php">
               <i class="nc-icon nc-cloud-upload-94"></i>
-              <p>tree Species</p>
+              <p>Tree Species</p>
             </a>
           </li>
           <li>
@@ -155,29 +168,42 @@ $conn->close();
             </a>
           </li>
           <li>
-            <a href="./stats.php">
-              <i class="nc-icon nc-tile-56"></i>
-              <p>Manage User</p>
-            </a>
-            <li>
             <a href="./validate-records.php">
               <i class="nc-icon nc-tile-56"></i>
-              <p>Valadate Records</p>
+              <p>Rree Records</p>
             </a>
           </li>
         </ul>
       </div>
     </div>
 
+    <!-- Main Panel -->
     <div class="main-panel">
-      <!-- Navbar -->
-      <nav class="navbar navbar-expand-lg navbar-absolute fixed-top navbar-transparent">
-        <div class="container-fluid">
-          <div class="navbar-wrapper">
-            <a class="navbar-brand" href="javascript:;">Tree Details</a>
-          </div>
-        </div>
-      </nav>
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-absolute fixed-top navbar-transparent">
+            <div class="container-fluid">
+                <div class="navbar-wrapper">
+                    <a class="navbar-brand" href="javascript:;">Tree Details</a>
+                </div>
+                <div class="collapse navbar-collapse justify-content-end">
+              
+                    <ul class="navbar-nav">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="color: black;">
+                                <i class="nc-icon nc-single-02"></i>
+                                <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="profileDropdown">
+                                <a class="dropdown-item" href="profile.php">View Profile</a>
+                                <a class="dropdown-item" href="settings.php">Settings</a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="logout.php">Logout</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
       <!-- End Navbar -->
 
       <!-- Main Content -->
@@ -185,26 +211,29 @@ $conn->close();
         <div class="container">
           <div class="header-section">
             <div>
-              <h2><?php echo htmlspecialchars($tree['species_name']); ?></h2>
+              <h5><?php echo htmlspecialchars($tree['species_name']); ?></h5>
               <p class="species-details">(<?php echo htmlspecialchars($tree['scientific_name']); ?>)</p>
             </div>
           </div>
 
-          <!-- Bootstrap Card -->
-          <div class="card mb-4">
-            <div class="card-body">
-              <!-- Image and Map in one card -->
-              <div class="row">
+<!-- Display Tree and User Information -->
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+      <?php if (!empty($tree['image_path'])): ?>
+      <img src="<?php echo htmlspecialchars($tree['image_path']); ?>" alt="Tree Image" class="tree-image" id="treeImage" onclick="openFullscreen();">
+  <?php else: ?>
+      <p>No image available.</p>
+  <?php endif; ?>
+      </div>
                 <div class="col-md-6">
-                  <!-- Displaying image -->
-                  <?php if (!empty($tree['image_path'])): ?>
-                    <img src="<?php echo htmlspecialchars($tree['image_path']); ?>" alt="Tree Image" class="tree-image">
-                  <?php else: ?>
-                    <p>No image available.</p>
-                  <?php endif; ?>
-                </div>
-                <div class="col-md-6">
-                  <!-- Map to display plant location -->
+                  <div class="user-info mt-4">
+                    <img src="<?php echo !empty($tree['profile_picture']) ? htmlspecialchars($tree['profile_picture']) : 'assets/img/user-avatar.png'; ?>" alt="User Avatar">
+                    <div>
+                      <p><strong>Uploaded by:</strong> <a href="#"><?php echo htmlspecialchars($tree['username']); ?></a></p>
+                    </div>
+                  </div>
                   <div id="map"></div>
                   <div class="map-details">
                     <p><strong>Location Map:</strong> <?php echo htmlspecialchars($tree['address']); ?></p>
@@ -212,71 +241,132 @@ $conn->close();
                   </div>
                 </div>
               </div>
-
-              <!-- Additional Information -->
-              <div class="user-info mt-4">
-                <img src="<?php echo !empty($tree['profile_picture']) ? htmlspecialchars($tree['profile_picture']) : 'assets/img/user-avatar.png'; ?>" alt="User Avatar">
-                <div>
-                  <p><strong>Uploaded by:</strong> <a href="#"><?php echo htmlspecialchars($tree['username']); ?></a></p>
-                  <p><strong>Observations:</strong> <?php echo htmlspecialchars($tree['observations_count']); ?></p>
-                </div>
-              </div>
-
               <div class="observation-details mt-3">
                 <p><strong>Location:</strong> <?php echo htmlspecialchars($tree['address']); ?></p>
-                <p><strong>Observed:</strong> <?php echo htmlspecialchars($tree['date_time']); ?></p>
-                <p><strong>Submitted:</strong> <?php echo htmlspecialchars($tree['created_at']); ?></p>
+                <p><strong>Date Observed:</strong> <?php echo htmlspecialchars($tree['date_time']); ?></p>
               </div>
             </div>
           </div>
-          <!-- End of Card -->
 
-          <!-- Other plants section -->
-          <div class="other-plants">
-            <h3>Other Plants by <?php echo htmlspecialchars($tree['username']); ?></h3>
-            <?php while ($other_plant = $other_plants_result->fetch_assoc()): ?>
-              <div class="plant-card">
-                <img src="<?php echo htmlspecialchars($other_plant['image_path']); ?>" alt="Other Plant">
-                <div class="plant-info">
-                  <h5><?php echo htmlspecialchars($other_plant['species_name']); ?></h5>
-                  <a href="view-tree.php?id=<?php echo $other_plant['id']; ?>">View Details</a>
-                </div>
+          <!-- Admin Review Form -->
+          <div class="review-form">
+            <h3>Leave a Review</h3>
+            <form action="view-tree.php?id=<?php echo $tree_id; ?>" method="POST">
+              <div class="form-group">
+                <label for="status">Status</label>
+                <select name="status" class="form-control" id="status">
+                  <option value="agree">Agree</option>
+                  <option value="disagree">Disagree</option>
+                </select>
               </div>
-            <?php endwhile; ?>
+              <div class="form-group">
+                <label for="comments">Comments</label>
+                <textarea name="comments" id="comments" class="form-control" rows="4" placeholder="Leave your comments here..."></textarea>
+              </div>
+              <button type="submit" name="submit_review" class="btn btn-success">Submit Review</button>
+            </form>
           </div>
 
+          <!-- Display Existing Reviews -->
+          <div class="reviews mt-5">
+            <h3>Reviews</h3>
+            <?php if ($reviews_result->num_rows > 0): ?>
+                <?php while ($review = $reviews_result->fetch_assoc()): ?>
+                    <div class="review-item">
+                        <h4>Review by <?php echo htmlspecialchars($review['admin_name']); ?> - <small><?php echo htmlspecialchars($review['status']); ?></small></h4>
+                        <p><?php echo htmlspecialchars($review['comments']); ?></p>
+                    </div>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <p>No reviews yet.</p>
+            <?php endif; ?>
+          </div>
         </div>
+        <div class="other-trees mt-5">
+    <h3>Other Trees Planted by <?php echo htmlspecialchars($tree['username']); ?></h3>
+    <?php if ($other_trees_result->num_rows > 0): ?>
+        <div class="row">
+            <?php while ($other_tree = $other_trees_result->fetch_assoc()): ?>
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <?php if (!empty($other_tree['image_path'])): ?>
+                            <img src="<?php echo htmlspecialchars($other_tree['image_path']); ?>" alt="Other Tree Image" class="card-img-top tree-image">
+                        <?php else: ?>
+                            <img src="assets/img/no-image.png" alt="No Image Available" class="card-img-top tree-image">
+                        <?php endif; ?>
+                        <div class="card-body">
+                            <h5 class="card-title"><?php echo htmlspecialchars($other_tree['species_name']); ?></h5>
+                            <p class="species-details">(<?php echo htmlspecialchars($other_tree['scientific_name']); ?>)</p>
+                            <p><strong>Date Observed:</strong> <?php echo htmlspecialchars($other_tree['date_time']); ?></p>
+                            <p><strong>Location:</strong> Lat: <?php echo htmlspecialchars($other_tree['latitude']); ?>, Lng: <?php echo htmlspecialchars($other_tree['longitude']); ?></p>
+                            <a href="view-tree.php?id=<?php echo $other_tree['id']; ?>" class="btn btn-primary btn-sm">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            <?php endwhile; ?>
+        </div>
+    <?php else: ?>
+        <p>No other trees planted by this user.</p>
+    <?php endif; ?>
+</div>
+
+
+      </div>
+      </div>
+      </div>
+    </div>
+</div>
+
+<!-- Display Tree and User Information -->
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <?php if (!empty($tree['image_path'])): ?>
+          <!-- Add lightGallery container and anchor tag for full-screen viewing -->
+          <div id="lightgallery">
+            <a href="<?php echo htmlspecialchars($tree['image_path']); ?>">
+              <img src="<?php echo htmlspecialchars($tree['image_path']); ?>" alt="Tree Image" class="tree-image">
+            </a>
+          </div>
+        <?php else: ?>
+          <p>No image available.</p>
+        <?php endif; ?>
       </div>
 
-      <!-- Footer -->
-      <footer class="footer">
-        <div class="container-fluid">
-          <div class="row">
-            <div class="credits ml-auto">
-              <span class="copyright">
-                © 2024, made with <i class="fa fa-heart heart"></i> by Kalasan Team
-              </span>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
-  </div>
+      <script>
+  // Get the image element
+  var elem = document.getElementById("treeImage");
 
-  <!-- Leaflet Map JS -->
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-  <script>
-      const latitude = <?php echo !empty($tree['latitude']) ? $tree['latitude'] : 'null'; ?>;
-      const longitude = <?php echo !empty($tree['longitude']) ? $tree['longitude'] : 'null'; ?>;
-      if (latitude && longitude) {
-        const map = L.map('map').setView([latitude, longitude], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-        L.marker([latitude, longitude]).addTo(map)
-          .bindPopup("<?php echo htmlspecialchars($tree['species_name']); ?>")
-          .openPopup();
-      }
-  </script>
+  // Function to open the image in full-screen mode
+  function openFullscreen() {
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.mozRequestFullScreen) { // Firefox
+      elem.mozRequestFullScreen();
+    } else if (elem.webkitRequestFullscreen) { // Chrome, Safari, Opera
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { // IE/Edge
+      elem.msRequestFullscreen();
+    }
+  }
+</script>
+      
+
+<!-- JS Scripts -->
+<script src="./assets/js/core/jquery.min.js"></script>
+<script src="./assets/js/core/popper.min.js"></script>
+<script src="./assets/js/core/bootstrap.min.js"></script>
+
+
+<!-- Leaflet Map JS -->
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script>
+  var map = L.map('map').setView([<?php echo htmlspecialchars($tree['latitude']); ?>, <?php echo htmlspecialchars($tree['longitude']); ?>], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+  }).addTo(map);
+  L.marker([<?php echo htmlspecialchars($tree['latitude']); ?>, <?php echo htmlspecialchars($tree['longitude']); ?>]).addTo(map);
+</script>
 </body>
 </html>

@@ -11,7 +11,7 @@ if (!isset($_SESSION['admin_id'])) {
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "proj-kalasan_db";
+$dbname = "dev_kalasan_db";
 
 // Create database connection
 $conn = new mysqli($servername, $username, $password, $dbname);
@@ -61,9 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     // Execute the update and handle success or failure
     if ($stmt->execute()) {
-        echo "<p>Tree data updated successfully.</p>";
-        // Redirect to the list page after successful update
-        header("Location: list_trees.php");
+        // Redirect with an alert message after successful update
+        header("Location: manage-record.php?alert=" . urlencode("Tree data updated successfully."));
         exit();
     } else {
         echo "<p>Error updating tree data: " . $stmt->error . "</p>";
@@ -82,8 +81,6 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,200" rel="stylesheet" />
-    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
     <link href="assets/css/paper-dashboard.css?v=2.0.1" rel="stylesheet" />
     <link href="assets/css/bootstrap.min.css" rel="stylesheet" />
     

@@ -80,7 +80,7 @@ $conn->close();
           <li>
             <a href="./tree-species-form.php">
               <i class="nc-icon nc-cloud-upload-94"></i>
-              <p>tree Species</p>
+              <p>Tree Species</p>
             </a>
           </li>
           <li>
@@ -90,14 +90,9 @@ $conn->close();
             </a>
           </li>
           <li>
-            <a href="./stats.php">
-              <i class="nc-icon nc-tile-56"></i>
-              <p>Manage User</p>
-            </a>
-            <li>
             <a href="./validate-records.php">
               <i class="nc-icon nc-tile-56"></i>
-              <p>Valadate Records</p>
+              <p>Rree Records</p>
             </a>
           </li>
         </ul>
@@ -162,7 +157,7 @@ $conn->close();
               </nav>
             </div>
             <div class="col-md-6 text-right">
-              <p>&copy; <script>document.write(new Date().getFullYear())</script> Your Company Name, made with <i class="fa fa-heart heart"></i> by Your Team.</p>
+              <p>&copy; <script>document.write(new Date().getFullYear())</script>  made with <i class="fa fa-heart heart"></i> by Team Kalasan.</p>
             </div>
           </div>
         </div>
@@ -178,7 +173,7 @@ $conn->close();
   <script>
   document.addEventListener('DOMContentLoaded', function () {
   // Step 1: Initialize the map
-  var map = L.map('map').setView([8.358062751051879, 124.86094951519246], 11); // Initial view
+  var map = L.map('map').setView([8.358062751051879, 124.86094951519246], 12); // Initial view
 
   // Step 2: Add the tile layers (map backgrounds)
   var satelliteLayer = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
@@ -205,7 +200,7 @@ $conn->close();
 
   // Step 5: Define the custom tree icon
   var treeIcon = L.icon({
-    iconUrl: 'assets/img/tree icon.png',  // Replace with actual path
+    iconUrl: 'assets/img/Tag Icon.png',  // Replace with actual path
     iconSize: [38, 38],  // Size of the icon
     iconAnchor: [19, 38],  // Point of the icon that corresponds to the marker's location
     popupAnchor: [0, -38]  // Point from which the popup should open relative to the iconAnchor
@@ -223,14 +218,20 @@ $conn->close();
         const imageUrl = plant.image;
         const date_time = plant.date_time; // Capture date from EXIF metadata
 
-        // Step 7: Add markers with custom icon to the marker cluster group
-        var marker = L.marker([lat, lon], { icon: treeIcon })
-          .bindPopup(`
-            <strong>Species:</strong> ${species_name}<br>
-            <strong>Location:</strong> ${address}<br>
-            <strong>Date Capture:</strong> ${date_time}<br>
-            <img src="uploads/${imageUrl}" alt="${species_name}" style="width:100px;">
-          `);
+       // Step 7: Add markers with custom icon to the marker cluster group
+var marker = L.marker([lat, lon], { icon: treeIcon })
+.bindPopup(`
+<div class="col-4">
+    <img src="${plant.image_path}" alt="Plant Image" class="img-fluid" 
+         style="width: 150px; height: auto; cursor: pointer;" 
+         onclick="openFullscreen('${plant.image_path}')" 
+         onerror="this.onerror=null; this.src='assets/img/default-plant.jpg';">
+</div>
+<strong>Species:</strong> ${species_name}<br>
+<strong>Location:</strong> ${address}<br>
+<strong>Date Captured:</strong> ${date_time}
+`);
+
 
         markers.addLayer(marker); // Add each marker to the marker cluster group
       });
@@ -241,7 +242,33 @@ $conn->close();
     .catch(error => console.error('Error fetching plant data:', error));
 });
 
+// Function to open image in full screen
+function openFullscreen(imageSrc) {
+  // Create a new image element
+  var img = new Image();
+  img.src = imageSrc;
+  img.style.position = 'fixed';
+  img.style.top = '0';
+  img.style.left = '0';
+  img.style.width = '100%';
+  img.style.height = '100%';
+  img.style.objectFit = 'contain';
+  img.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+  img.style.cursor = 'pointer';
+  img.style.zIndex = '9999';
+
+  // Add the image to the document body
+  document.body.appendChild(img);
+
+  // Close the image on click
+  img.onclick = function () {
+    document.body.removeChild(img);
+  };
+}
+
+
   </script>
+  
 </body>
   <script src="assets/js/core/jquery.min.js"></script>
   <script src="assets/js/core/popper.min.js"></script>

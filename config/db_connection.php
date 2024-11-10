@@ -4,7 +4,7 @@
 $servername = "localhost";
 $username = "root";
 $password = ""; 
-$dbname = "proj-kalasan_db";
+$dbname = "dev_kalasan_db";
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);

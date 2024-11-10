@@ -1,30 +1,49 @@
+<?php
+session_start();
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: LogIn.php");
+    exit();
+}
+
+// Database connection
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "dev_kalasan_db";
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Fetch contributor count
+$sql = "SELECT COUNT(*) AS contributor_count FROM users";
+$result = $conn->query($sql);
+$contributor_count = ($result->num_rows > 0) ? $result->fetch_assoc()['contributor_count'] : 0;
+
+// Fetch planted tree count
+$planted_tree_sql = "SELECT COUNT(*) AS planted_tree FROM tree_planted";
+$tree_result = $conn->query($planted_tree_sql);
+$planted_tree = ($tree_result->num_rows > 0) ? $tree_result->fetch_assoc()['planted_tree'] : 0;
+
+$conn->close();
+?>
+
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8" />
-  <link rel="apple-touch-icon" sizes="76x76" href="./assets/img/apple-icon.png">
-  <link rel="icon" type="image/png" href="./assets/img/favicon.png">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-  <title>
-    Contributors List - Dashboard
-  </title>
-  <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport' />
-  <!--     Fonts and icons     -->
+  <title>Contributors and Admins - Dashboard</title>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0' />
   <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,200" rel="stylesheet" />
-  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
-  <!-- CSS Files -->
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet" />
   <link href="./assets/css/bootstrap.min.css" rel="stylesheet" />
   <link href="./assets/css/paper-dashboard.css?v=2.0.1" rel="stylesheet" />
-  
-  <!-- DataTables CSS -->
   <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
-  
-  <!-- CSS Just for demo purpose, don't include it in your project -->
-  <link href="./assets/demo/demo.css" rel="stylesheet" />
 </head>
 
-<body class="">
+<body>
 <div class="wrapper">
     <!-- Sidebar -->
     <div class="sidebar" data-color="white" data-active-color="danger">
@@ -43,41 +62,46 @@
             </a>
           </li>
           <li>
-            <a href="./validate.html">
-              <i class="nc-icon nc-bank"></i>
-              <p>Validation Logs</p>
-            </a>
-          </li>
-          <li>
             <a href="./map.php">
               <i class="nc-icon nc-pin-3"></i>
               <p>Maps</p>
             </a>
           </li>
           <li>
-            <a href="./">
+            <a href="./manage-record.php">
               <i class="nc-icon nc-cloud-upload-94"></i>
               <p>Manage Records</p>
             </a>
           </li>
           <li>
-            <a href="./contributors_datatable.php">
+            <a href="./tree-species-form.php">
+              <i class="nc-icon nc-cloud-upload-94"></i>
+              <p>Tree Species</p>
+            </a>
+          </li>
+          <li>
+            <a href="./contributors-datatable.php">
               <i class="nc-icon nc-tile-56"></i>
               <p>Manage User</p>
+            </a>
+          </li>
+          <li>
+            <a href="./validate-records.php">
+              <i class="nc-icon nc-tile-56"></i>
+              <p>Rree Records</p>
             </a>
           </li>
         </ul>
       </div>
     </div>
-      <!-- End Navbar -->
 
-       <!-- Main Panel -->
+    <!-- Main Panel -->
     <div class="main-panel">
       <!-- Navbar -->
       <nav class="navbar navbar-expand-lg navbar-absolute fixed-top navbar-transparent">
         <div class="container-fluid">
           <div class="navbar-wrapper">
-            <a class="navbar-brand" href="javascript:;">DataTable</a>
+            <a class="navbar-brand" href="javascript:;">Contributors and Admins</a>
           </div>
           <div class="collapse navbar-collapse justify-content-end">
             <form>
@@ -110,99 +134,9 @@
 
       <!-- Main content -->
       <div class="content">
-        <div class="row">
-          <!-- PHP Code for Counting Contributors and Planted Trees -->
-          <?php
-            // Database connection details
-            $servername = "localhost";  // Replace with your DB server
-            $username = "root";         // Replace with your DB username
-            $password = "";             // Replace with your DB password
-            $dbname = "proj-kalasan_db";     // Replace with your DB name
-
-            // Create a connection
-            $conn = new mysqli($servername, $username, $password, $dbname);
-
-            // Check the connection
-            if ($conn->connect_error) {
-              die("Connection failed: " . $conn->connect_error);
-            }
-
-            // SQL query to count users with id (Contributors)
-            $sql = "SELECT COUNT(*) AS contributor_count FROM users WHERE id IS NOT NULL";
-            $result = $conn->query($sql);
-            $contributor_count = 0;
-            if ($result->num_rows > 0) {
-              $row = $result->fetch_assoc();
-              $contributor_count = $row['contributor_count'];
-            }
-
-            // SQL query to count trees planted
-            $sql = "SELECT COUNT(*) AS planted_tree FROM tree_records WHERE id IS NOT NULL";
-            $result = $conn->query($sql);
-            $planted_tree = 0;
-            if ($result->num_rows > 0) {
-              $row = $result->fetch_assoc();
-              $planted_tree = $row['planted_tree'];
-            }
-
-            // Close the connection
-            $conn->close();
-          ?>
-
-         <!-- Dashboard Card for Contributors -->
-<div class="col-lg-3 col-md-6 col-sm-6">
-  <div class="card card-stats">
-    <div class="card-body">
-      <div class="row">
-        <div class="col-5 col-md-4">
-          <div class="icon-big text-center icon-warning">
-            <i class="nc-icon nc-globe text-warning"></i>
-          </div>
-        </div>
-        <div class="col-7 col-md-8">
-          <p class="card-category">Contributors</p>
-          <p class="card-title"><?php echo $contributor_count; ?></p>
-        </div>
-      </div>
-    </div>
-    <div class="button-footer">
-      <button class="btn btn-primary" onclick="window.location.href='contributors_datatable.php';">
-        <i class="fa fa-eye"></i> View List
-      </button>
-    </div>
-  </div>
-</div>
-
-          <!-- Dashboard Card for Planted Trees -->
-          <div class="col-lg-3 col-md-6 col-sm-6">
-            <div class="card card-stats">
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-5 col-md-4">
-                    <div class="icon-big text-center icon-warning">
-                      <i class="nc-icon nc-planet text-success"></i>
-                    </div>
-                  </div>
-                  <div class="col-7 col-md-8">
-                    <p class="card-category">Planted Trees</p>
-                    <p class="card-title"><?php echo $planted_tree; ?></p>
-                  </div>
-                </div>
-              </div>
-              <div class="button-footer">
-                   <button class="btn btn-primary" onclick="window.location.href='home.php';">
-                       <i class="fa fa-eye"></i> View Analytics
-                   </button>
-              </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      <div class="content">
+        <!-- Contributors List -->
         <div class="row">
           <div class="col-md-12">
-            <!-- Card for Contributors List -->
             <div class="card">
               <div class="card-header">
                 <h5 class="card-title">Contributors List</h5>
@@ -219,36 +153,30 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <!-- PHP Code to Fetch Data from the Database -->
                     <?php
-                      // Database connection
-                      $servername = "localhost";
-                      $username = "root";
-                      $password = "";
-                      $dbname = "proj-kalasan_db";
-                      $conn = new mysqli($servername, $username, $password, $dbname);
-                      if ($conn->connect_error) {
-                          die("Connection failed: " . $conn->connect_error);
-                      }
+                    $conn = new mysqli($servername, $username, $password, $dbname);
+                    if ($conn->connect_error) {
+                        die("Connection failed: " . $conn->connect_error);
+                    }
 
-                      // SQL query to fetch contributors' data
-                      $sql = "SELECT id, username, email, created_at, profile_picture FROM users";
-                      $result = $conn->query($sql);
+                    $sql = "SELECT id, username, email, created_at, profile_picture FROM users";
+                    $result = $conn->query($sql);
 
-                      if ($result->num_rows > 0) {
-                          while($row = $result->fetch_assoc()) {
-                              echo "<tr>";
-                              echo "<td>" . $row["id"] . "</td>";
-                              echo "<td>" . $row["username"] . "</td>";
-                              echo "<td>" . $row["email"] . "</td>";
-                              echo "<td>" . $row["created_at"] . "</td>";
-                              echo "<td><img src='" . $row["profile_picture"] . "' width='50' height='50' alt='Profile Picture'></td>";
-                              echo "</tr>";
-                          }
-                      } else {
-                          echo "<tr><td colspan='5'>No contributors found</td></tr>";
-                      }
-                      $conn->close();
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo "<tr>";
+                            echo "<td>" . $row["id"] . "</td>";
+                            echo "<td>" . $row["username"] . "</td>";
+                            echo "<td>" . $row["email"] . "</td>";
+                            echo "<td>" . $row["created_at"] . "</td>";
+                            echo "<td><img src='" . $row["profile_picture"] . "' width='50' height='50' alt='Profile Picture'></td>";
+                            echo "</tr>";
+                        }
+                    } else {
+                        echo "<tr><td colspan='5'>No contributors found</td></tr>";
+                    }
+
+                    $conn->close();
                     ?>
                   </tbody>
                 </table>
@@ -256,59 +184,67 @@
             </div>
           </div>
         </div>
-      </div>
-      
-      <footer class="footer" style="position: absolute; bottom: 0; width: 100%;">
-        <div class="container-fluid">
-          <div class="row">
-            <nav class="footer-nav">
-              <ul>
-                <li><a href="https://www.creative-tim.com" target="_blank">Creative Tim</a></li>
-                <li><a href="https://www.creative-tim.com/blog" target="_blank">Blog</a></li>
-                <li><a href="https://www.creative-tim.com/license" target="_blank">Licenses</a></li>
-              </ul>
-            </nav>
-            <div class="credits ml-auto">
-              <span class="copyright">
-                © 2020, made with <i class="fa fa-heart heart"></i> by Creative Tim
-              </span>
-            </div>
+
+        <!-- Admin List -->
+        <div class="row">
+          <div class="col-md-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Admin List</h5>
+              </div>
+              <div class="card-body">
+                <table id="adminTable" class="display" style="width:100%">
+                  <thead>
+                    <tr>
+                      <th>Admin ID</th>
+                      <th>Name</th>
+                      <th>Username</th>
+                      <th>Email</th>
+                      <th>Status</th>
+                      <th>Date Created</th>
+                      <th>Profile Picture</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php
+                    $conn = new mysqli($servername, $username, $password, $dbname);
+                    if ($conn->connect_error) {
+                        die("Connection failed: " . $conn->connect_error);
+                    }
+
+                    $admin_sql = "SELECT admin_id, admin_name, username, email, status, created_at, profile_picture FROM admin";
+                    $admin_result = $conn->query($admin_sql);
+
+                    if ($admin_result->num_rows > 0) {
+                        while ($admin_row = $admin_result->fetch_assoc()) {
+                            echo "<tr>";
+                            echo "<td>" . $admin_row["admin_id"] . "</td>";
+                            echo "<td>" . $admin_row["admin_name"] . "</td>";
+                            echo "<td>" . $admin_row["username"] . "</td>";
+                            echo "<td>" . $admin_row["email"] . "</td>";
+                            echo "<td>" . ucfirst($admin_row["status"]) . "</td>";
+                            echo "<td>" . $admin_row["created_at"] . "</td>";
+                            echo "<td><img src='" . $admin_row["profile_picture"] . "'
+width='50' height='50' alt='Admin Profile Picture'></td>"; echo "</tr>"; } } else { echo "<tr><td colspan='7'>No admins found</td></tr>"; }
+
+                $conn->close();
+                ?>
+              </tbody>
+            </table>
           </div>
         </div>
-      </footer>
+      </div>
     </div>
   </div>
-  
-  <!-- Core JS Files -->
-  <script src="./assets/js/core/jquery.min.js"></script>
-  <script src="./assets/js/core/popper.min.js"></script>
-  <script src="./assets/js/core/bootstrap.min.js"></script>
-  <script src="./assets/js/plugins/perfect-scrollbar.jquery.min.js"></script>
-  
-  <!-- DataTables JS -->
-  <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
 
-  <!-- DataTables Initialization Script -->
-  <script>
-    $(document).ready(function() {
-      $('#contributorsTable').DataTable({
-        "paging": true,
-        "searching": true,
-        "ordering": true,
-        "columnDefs": [
-          { "orderable": false, "targets": 4 }
-        ],
-        "lengthMenu": [5, 10, 25],
-        "pageLength": 5,
-        "language": {
-          "search": "Filter records:",
-          "lengthMenu": "Show _MENU_ contributors per page",
-          "info": "Showing _START_ to _END_ of _TOTAL_ contributors"
-        }
-      });
-    });
-  </script>
-  
-</body>
-
-</html>
+  <footer class="footer" style="position: absolute; bottom: 0; width: 100%;">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="credits ml-auto">
+          <span>&copy; 2024 Kalasan Project</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+</div> <!-- JS Files --> <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script> <script> $(document).ready(function () { $('#contributorsTable').DataTable(); $('#adminTable').DataTable(); }); </script> </body> </html> ```

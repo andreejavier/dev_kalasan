@@ -5,7 +5,7 @@ header('Content-Type: application/json');
 $servername = "localhost";
 $username = "root"; // Update with your username
 $password = ""; // Update with your password
-$dbname = "proj-kalasan_db"; // Update with your database name
+$dbname = "dev_kalasan_db"; // Update with your database name
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
