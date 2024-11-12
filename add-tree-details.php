@@ -68,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         echo "<p>Error updating tree data: " . $stmt->error . "</p>";
     }
     $stmt->close();
+    
 }
 
 $conn->close();
@@ -102,12 +103,13 @@ $conn->close();
             
             <!-- Display the current image -->
             <div class="form-group">
-                <label>Current Image</label><br>
-                <?php if ($tree['image_path']): ?>
-                    <img src="<?= htmlspecialchars($tree['image_path']) ?>" alt="Tree Image" width="200" />
-                <?php else: ?>
-                    <p>No image available</p>
-                <?php endif; ?>
+                <div class="col-md-6">
+                    <?php if (!empty($tree['image_path'])): ?>
+                    <img src="<?php echo htmlspecialchars($tree['image_path']); ?>" alt="Tree Image" class="tree-image" id="treeImage" style="cursor: pointer;" onclick="openFullscreen(this);">
+                    <?php else: ?>
+                        <p>No image available.</p>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <!-- Display the user who uploaded the plant -->
@@ -155,8 +157,21 @@ $conn->close();
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
+    // Function to open the image in full-screen mode
+    function openFullscreen(elem) {
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen();
+        } else if (elem.mozRequestFullScreen) { // Firefox
+            elem.mozRequestFullScreen();
+        } else if (elem.webkitRequestFullscreen) { // Chrome, Safari, Opera
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) { // IE/Edge
+            elem.msRequestFullscreen();
+        }
+    }
+
     // Initialize the map
-    var map = L.map('map').setView([<?php echo $tree['latitude']; ?>, <?php echo $tree['longitude']; ?>], 13);
+    var map = L.map('map').setView([<?php echo $tree['latitude']; ?>, <?php echo $tree['longitude']; ?>], 16);
 
     // Add OpenStreetMap tiles to the map
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

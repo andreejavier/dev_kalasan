@@ -95,26 +95,27 @@ $conn->close();
           </li>
           <li>
             <a href="./manage-record.php">
-              <i class="nc-icon nc-cloud-upload-94"></i>
+              <i class="fa fa-tasks"></i>
               <p>Manage Records</p>
             </a>
           </li>
           <li>
-            <a href="./tree-species-form.php">
-              <i class="nc-icon nc-cloud-upload-94"></i>
-              <p>Tree Species</p>
-            </a>
-          </li>
+    <a href="./tree-species-form.php">
+        <i class="fa fa-tree"></i>
+        <p>Tree Species</p>
+    </a>
+</li>
+
           <li>
             <a href="./contributors-datatable.php">
-              <i class="nc-icon nc-tile-56"></i>
+              <i class="fa fa-users"></i>
               <p>Manage User</p>
             </a>
           </li>
           <li>
             <a href="./validate-records.php">
-              <i class="nc-icon nc-tile-56"></i>
-              <p>Rree Records</p>
+              <i class="fa fa-clipboard"></i>
+              <p>Tree Records</p>
             </a>
           </li>
         </ul>

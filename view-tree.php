@@ -137,7 +137,7 @@ $conn->close();
       </div>
       <div class="sidebar-wrapper">
         <ul class="nav">
-          <li class="active">
+          <li>
             <a href="./home.php">
               <i class="nc-icon nc-bank"></i>
               <p>Home</p>
@@ -155,7 +155,7 @@ $conn->close();
               <p>Manage Records</p>
             </a>
           </li>
-          <li>
+          <li class="active">
             <a href="./tree-species-form.php">
               <i class="nc-icon nc-cloud-upload-94"></i>
               <p>Tree Species</p>
